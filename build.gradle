@@ -1,0 +1,252 @@
+import org.jetbrains.kotlin.gradle.tasks.FatFrameworkTask
+
+buildscript {
+
+    ext.kotlin_version = '1.3.50'
+
+    repositories {
+        mavenCentral()
+        google()
+        jcenter()
+        maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+        maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+
+}
+
+plugins {
+    //kotlin MPP
+    id 'org.jetbrains.kotlin.multiplatform' version '1.3.50'
+    //cocoa pods required to assemble framework. 'cocoapods.podspec' gradle task is not used in this project.
+    //podspec is generated once, and usually don't change, except version, and included resources
+    id 'org.jetbrains.kotlin.native.cocoapods' version '1.3.50'
+
+    id 'idea'
+
+    //publish and release
+    id 'maven-publish'
+    id 'net.researchgate.release' version '2.8.1'
+}
+
+group 'com.ekahau.prototypes.khtf'
+
+def mavenRepo = findProperty('khtfmavenrepo')
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
+    maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+    maven { url mavenRepo?"${mavenRepo}/releases":"" }
+}
+
+kotlin {
+
+    /*
+    === DEPENDENCIES ===
+     */
+    sourceSets {
+
+        //lib contain only common, platform independent code
+        commonMain {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-common'
+
+                api 'com.ekahau.prototypes.khtf:khtf-lib-a:1.0.+'
+                api 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
+            }
+        }
+
+        commonTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+                implementation 'org.jetbrains.kotlin:kotlin-test-common'
+                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+
+                implementation 'org.jetbrains.kotlin:kotlin-test'
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+            }
+        }
+
+        iosArm64 {
+
+        }
+
+        iosX64 {
+
+        }
+
+        jvmMain {
+
+        }
+
+
+        jvmTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+                implementation 'org.jetbrains.kotlin:kotlin-test-common'
+                implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+
+                //tests
+                implementation 'org.jetbrains.kotlin:kotlin-test'
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit5'
+                implementation 'org.junit.jupiter:junit-jupiter-api:5.5.1'
+                implementation 'org.junit.jupiter:junit-jupiter-params:5.5.1'
+                implementation 'org.junit.jupiter:junit-jupiter-engine:5.5.1'
+                //xml parsing
+                implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.9.9'
+                implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9'
+                implementation 'org.apache.commons:commons-lang3:3.9'
+                //logging
+                implementation 'io.github.microutils:kotlin-logging:1.7.6'
+                implementation 'ch.qos.logback:logback-classic:1.2.3'
+                implementation 'org.slf4j:slf4j-api:1.7.28'
+            }
+        }
+
+
+    } //sourceSets
+
+    /*
+    === builds ===
+    */
+    targets {
+        //jvm (android, backend, desktop)
+        fromPreset(presets.jvm, 'jvm')
+
+        //ios real device
+        iosArm64("iosArm64")
+        //ios simulator
+        iosX64("iosX64")
+
+        configure([iosArm64, iosX64]) {
+            binaries.findAll {
+                it instanceof org.jetbrains.kotlin.gradle.plugin.mpp.Framework
+            }.every {
+                it.export 'com.ekahau.prototypes.khtf:khtf-lib-a:1.0.+'
+                it.export 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
+                it.transitiveExport = true
+            }
+        }
+
+    }
+
+    // Create a task building a fat framework.
+    task fatFramework(type: FatFrameworkTask) {
+        // The fat framework must have the same base name as the initial frameworks.
+        baseName = 'KhtfIosAppFw'
+
+        // The default destination directory is '<build directory>/fat-framework'.
+        final File frameworkDir = new File(buildDir, 'fat-framework')
+        destinationDir = frameworkDir
+
+        // Specify the frameworks to be merged.
+        from(
+                targets.iosArm64.binaries.getFramework("RELEASE"),
+                targets.iosX64.binaries.getFramework("RELEASE")
+        )
+
+        doLast {
+            copyFrameworkExtraFiles
+        }
+
+    }
+
+}
+
+jvmTest {
+    useJUnitPlatform()
+}
+
+/*
+copy extra files
+*/
+task copyFrameworkExtraFiles {
+
+    dependsOn build
+
+    def targetDir = 'build/fat-framework'
+    /*
+    podspec is not changed, only version is updated
+     */
+    copy {
+        from 'iosPodScripts/KhtfIosAppFw.podspec'
+        into targetDir
+        filter{ it.replaceAll('VERSION', version)}
+    }
+
+    copy {
+        from 'src/commonMain/resources'
+        into targetDir+'/resources'
+    }
+
+    //todo copy files from dependencies klibs/jars/source-jar, as they not exposed by libs automatically
+}
+tasks.build.dependsOn fatFramework
+
+/*
+=== publish jar to nexus ===
+ */
+// default values, override them in USER\.gradle\gradle.properties with your credentials
+publishing {
+    publications {
+        jvm {
+            artifactId "${rootProject.name}-jvm"
+        }
+        metadata {
+
+        }
+
+        iosArm64 {
+
+        }
+
+        iosX64 {
+
+        }
+
+    }
+
+    repositories {
+        maven {
+            url "${mavenRepo}/${project.version.endsWith('-SNAPSHOT') ? 'snapshots' : 'releases' }"
+            credentials {
+                username findProperty('khtfmavenuser')
+                password findProperty('khtfmavenpassword')
+            }
+        }
+    }
+}
+
+/*
+=== publish framework to binary repository ===
+ */
+//upload iOs framework and podspec files to binary repository
+task deployFramework(type: Exec) {
+    commandLine "${rootDir}/iosPodScripts/deploy.sh"
+}
+
+/*
+=== release lib for jvm and ios ===
+
+if building artifact for jvm or iOS failed, then release reverted
+
+On your CI:
+./gradlew release -Prelease.useAutomaticVersion=true
+ */
+release {
+    beforeReleaseBuild.dependsOn allTests
+
+    //explicit git branch is required fore gradle debug
+    git {
+        requireBranch = '(master|\\d+\\.\\d+)'
+    }
+
+    afterReleaseBuild.dependsOn publish
+    afterReleaseBuild.dependsOn deployFramework
+}
