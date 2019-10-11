@@ -59,6 +59,8 @@ kotlin {
 
                 api 'com.ekahau.prototypes.khtf:khtf-lib-a:1.0.+'
                 api 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
+                api 'com.ekahau.prototypes.khtf:khtf-lib-f:1.0.+'
+                api 'com.ekahau.prototypes.khtf:khtf-lib-g:1.0.+'
             }
         }
 
@@ -130,6 +132,8 @@ kotlin {
             }.every {
                 it.export 'com.ekahau.prototypes.khtf:khtf-lib-a:1.0.+'
                 it.export 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
+                it.export 'com.ekahau.prototypes.khtf:khtf-lib-f:1.0.+'
+                it.export 'com.ekahau.prototypes.khtf:khtf-lib-g:1.0.+'
                 it.transitiveExport = true
             }
         }
