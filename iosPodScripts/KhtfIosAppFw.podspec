@@ -15,5 +15,5 @@ Pod::Spec.new do |s|
     :git => 'https://github.com/Ekahau/khtf-iosapp-fw-framework.git',
     :tag => s.version
   }
-  s.ios.resource_bundle = { 'KhtfIosAppFw' => 'resources/*' }
+  s.ios.resource_bundle = { 'KhtfIosAppFw' => 'resources/**/*' }
 end

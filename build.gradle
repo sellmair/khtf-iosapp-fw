@@ -42,6 +42,7 @@ repositories {
     maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
     maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
     maven { url mavenRepo?"${mavenRepo}/releases":"" }
+    maven { url "https://dl.bintray.com/suparnatural/kotlin-multiplatform" }
 }
 
 kotlin {
@@ -61,6 +62,9 @@ kotlin {
                 api 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
                 api 'com.ekahau.prototypes.khtf:khtf-lib-f:1.0.+'
                 api 'com.ekahau.prototypes.khtf:khtf-lib-g:1.0.+'
+
+                api 'com.ekahau.prototypes.khtf:khtf-lib-h:1.0.+'
+
             }
         }
 
@@ -134,7 +138,9 @@ kotlin {
                 it.export 'com.ekahau.prototypes.khtf:khtf-lib-c:1.0.+'
                 it.export 'com.ekahau.prototypes.khtf:khtf-lib-f:1.0.+'
                 it.export 'com.ekahau.prototypes.khtf:khtf-lib-g:1.0.+'
+                it.export 'com.ekahau.prototypes.khtf:khtf-lib-h:1.0.+'
                 it.transitiveExport = true
+                //it.isStatic = false
             }
         }
 
@@ -169,6 +175,7 @@ jvmTest {
 
 /*
 copy extra files
+FIXME: this doesn't copy files from inside of klibs (one way is to extract files from jars, or wait when it is fixed in K/N1 .3.70+ )
 */
 task copyFrameworkExtraFiles {
 
@@ -185,8 +192,8 @@ task copyFrameworkExtraFiles {
     }
 
     copy {
-        from 'src/commonMain/resources'
-        into targetDir+'/resources'
+        from 'src/commonMain/resources/'
+        into targetDir+'/resources/'
     }
 
     //todo copy files from dependencies klibs/jars/source-jar, as they not exposed by libs automatically

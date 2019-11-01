@@ -20,6 +20,8 @@ class SummatorFw {
     //get class Summator from lib C
     fun getSummatorC(): com.ekahau.prototypes.khtf.libc.Summator = com.ekahau.prototypes.khtf.libc.Summator()
 
-
+    fun testFiles() {
+        com.ekahau.prototypes.khtf.libh.ColorProviderFactory.colorProvider
+    }
 
 }
