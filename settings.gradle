@@ -3,3 +3,4 @@ enableFeaturePreview('GRADLE_METADATA')
 
 rootProject.name = 'khtf-iosapp-fw'
 
+include ':app'
